@@ -1,0 +1,10 @@
+- name: Bootstrap VM for Ansible
+  hosts: web
+  become: true
+  gather_facts: false
+
+  tasks:
+    - name: Install Python and pip
+      raw: |
+        sudo apt-get update -y
+        sudo apt-get install -y python3 python3-pip

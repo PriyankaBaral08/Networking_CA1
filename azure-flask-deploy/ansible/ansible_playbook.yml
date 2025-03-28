@@ -1,0 +1,47 @@
+- name: Set up and deploy Flask app
+  hosts: web
+  become: true
+  gather_facts: false
+
+  tasks:
+    - name: Install Python 3.8 and pip
+      raw: |
+        sudo apt-get update -y
+        sudo apt-get install -y software-properties-common
+        sudo add-apt-repository -y ppa:deadsnakes/ppa
+        sudo apt-get update -y
+        sudo apt-get install -y python3.8 python3.8-distutils
+        curl -sS https://bootstrap.pypa.io/get-pip.py | sudo python3.8
+      ignore_errors: yes
+
+    - name: Install Docker
+      raw: |
+        sudo apt-get install -y docker.io
+        sudo systemctl start docker
+        sudo systemctl enable docker
+      ignore_errors: yes
+
+    - name: Install Docker SDK for Python
+      raw: sudo python3.8 -m pip install docker
+      ignore_errors: yes
+
+    - name: Stop and remove existing Docker container on port 5000
+      shell: |
+        container_id=$(docker ps -q --filter "publish=5000")
+        if [ ! -z "$container_id" ]; then
+          docker stop $container_id
+          docker rm $container_id
+        fi
+      ignore_errors: yes
+
+    - name: Copy Flask app to server
+      copy:
+        src: ../flask-app/
+        dest: /home/adminuser/flask-app/
+        mode: '0755'
+
+    - name: Build Flask Docker image
+      command: docker build -t flask-app /home/adminuser/flask-app
+
+    - name: Run Flask Docker container
+      command: docker run -d -p 5000:5000 flask-app
